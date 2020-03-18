@@ -3,7 +3,6 @@ var inherits = require('util').inherits;
 const fs = require('fs');
 const packageFile = require("./package.json");
 var os = require("os");
-var hostname = os.hostname();
 
 module.exports = function(homebridge) {
     if(!isConfig(homebridge.user.configPath(), "accessories", "RaspberryPiInfo")) {
@@ -27,6 +26,19 @@ function readUptime() {
 				//this.log("exec error: " + ${error});
 			}
 		});			
+};
+
+function getModel() {
+	const exec = require('child_process').exec;
+	var script = exec('cat /sys/firmware/devicetree/base/model > /tmp/model.txt',
+		(error, stdout, stderr) => {
+			if (error !== null) {
+				//this.log("exec error: " + ${error});
+			}
+		});
+	var data = fs.readFileSync("/tmp/model.txt", "utf-8");
+	var Model = data.substring(0,data.length - 1);
+	return Model;		
 };
 
 function isConfig(configFile, type, name) {
@@ -95,9 +107,9 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 	
 	this.infoService = new Service.AccessoryInformation();
 	this.infoService
-		.setCharacteristic(Characteristic.Manufacturer, "RaspberryPi")
-		.setCharacteristic(Characteristic.Model, "3B")
-		.setCharacteristic(Characteristic.SerialNumber, hostname + "-" + this.name)
+		.setCharacteristic(Characteristic.Manufacturer, "Raspberry Pi Foundation")
+		.setCharacteristic(Characteristic.Model, getModel())
+		.setCharacteristic(Characteristic.SerialNumber, os.hostname())
 		.setCharacteristic(Characteristic.FirmwareRevision, packageFile.version);
 	
 	this.fakeGatoHistoryService = new FakeGatoHistoryService("weather", this, { storage: 'fs' });
