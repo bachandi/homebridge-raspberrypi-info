@@ -77,6 +77,10 @@ function RaspberryPiInfo(log, config) {
     } else {
         this.updateInterval = null;
     }
+    this.verboseLogging = false;
+    if(config["verboseLogging"]) {
+      this.verboseLogging = true;
+    }
   
 	this.setUpServices();
 };
@@ -153,8 +157,10 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 	if(that.updateInterval) {
 		setInterval(() => {
 			currentTemperatureCharacteristic.updateValue(getCurrentTemperature());
-			
-			that.log("Raspberry Temperature: " + temp);
+
+      if (that.verboseLogging) {
+			  that.log("Raspberry Temperature: " + temp);
+      }
 			this.fakeGatoHistoryService.addEntry({time: new Date().getTime() / 1000, temp: temp});
 		}, that.updateInterval);
 	}
