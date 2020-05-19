@@ -3,6 +3,8 @@ var inherits = require('util').inherits;
 const fs = require('fs');
 const packageFile = require("./package.json");
 var os = require("os");
+const modelFile = "/tmp/model.txt";
+const uptimeFile = "/tmp/uptime.txt";
 
 module.exports = function(homebridge) {
     if(!isConfig(homebridge.user.configPath(), "accessories", "RaspberryPiInfo")) {
@@ -20,7 +22,8 @@ module.exports = function(homebridge) {
 
 function readUptime() {
 	const exec = require('child_process').exec;
-	var script = exec('uptime > /tmp/uptime.txt',
+  const command = "uptime > " + uptimeFile;
+	var script = exec(command,
 		(error, stdout, stderr) => {
 			if (error !== null) {
 				//this.log("exec error: " + ${error});
@@ -30,13 +33,14 @@ function readUptime() {
 
 function getModel() {
 	const exec = require('child_process').exec;
-	var script = exec('cat /sys/firmware/devicetree/base/model > /tmp/model.txt',
+  const command = "cat /sys/firmware/devicetree/base/model > " + modelFile;
+	var script = exec(command,
 		(error, stdout, stderr) => {
 			if (error !== null) {
 				//this.log("exec error: " + ${error});
 			}
 		});
-	var data = fs.readFileSync("/tmp/model.txt", "utf-8");
+	var data = fs.readFileSync(modelFile, "utf-8");
 	var Model = data.substring(0,data.length - 1);
 	return Model;		
 };
@@ -86,7 +90,7 @@ function RaspberryPiInfo(log, config) {
 
 RaspberryPiInfo.prototype.getUptime = function (callback) {
 	
-	var data = fs.readFileSync("/tmp/uptime.txt", "utf-8");
+	var data = fs.readFileSync(uptimeFile, "utf-8");
 	var uptime = data.substring(12, data.indexOf(",", data.indexOf(",", 0)+1));
 		
 	callback(null, uptime);
@@ -94,7 +98,7 @@ RaspberryPiInfo.prototype.getUptime = function (callback) {
 
 RaspberryPiInfo.prototype.getAvgLoad = function (callback) {
 	
-	var data = fs.readFileSync("/tmp/uptime.txt", "utf-8");
+	var data = fs.readFileSync(uptimeFile, "utf-8");
 	var load = data.substring(data.length - 17);
 		
 	callback(null, load);
