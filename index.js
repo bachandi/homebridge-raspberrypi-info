@@ -3,7 +3,6 @@ var inherits = require('util').inherits;
 const fs = require('fs');
 const packageFile = require("./package.json");
 var os = require("os");
-const uptimeFile = "/tmp/uptime.txt";
 
 module.exports = function(homebridge) {
     if(!isConfig(homebridge.user.configPath(), "accessories", "RaspberryPiInfo")) {
@@ -19,15 +18,14 @@ module.exports = function(homebridge) {
     homebridge.registerAccessory('homebridge-raspberrypi-info', 'RaspberryPiInfo', RaspberryPiInfo);
 }
 
-function readUptime() {
-	const exec = require('child_process').exec;
-  const command = "uptime > " + uptimeFile;
-	var script = exec(command,
-		(error, stdout, stderr) => {
-			if (error !== null) {
-				//this.log("exec error: " + ${error});
-			}
-		});			
+function getUptime() {
+
+  const { execSync } = require('child_process');
+  // stderr is sent to stderr of parent process
+  // you can set options.stdio if you want it to go elsewhere
+  let stdout = execSync('uptime');
+  const data = stdout.toString();
+  return data.substring(0, data.length - 1);
 };
 
 function getModel() {
@@ -84,19 +82,19 @@ function RaspberryPiInfo(log, config) {
 };
 
 RaspberryPiInfo.prototype.getUptime = function (callback) {
-	
-	var data = fs.readFileSync(uptimeFile, "utf-8");
-	var uptime = data.substring(12, data.indexOf(",", data.indexOf(",", 0)+1));
-		
-	callback(null, uptime);
+
+  var data = getUptime();
+  var uptime = data.substring(12, data.indexOf(",", data.indexOf(",", 0)+1));
+
+  callback(null, uptime);
 };
 
 RaspberryPiInfo.prototype.getAvgLoad = function (callback) {
-	
-	var data = fs.readFileSync(uptimeFile, "utf-8");
-	var load = data.substring(data.length - 17);
-		
-	callback(null, load);
+
+  var data = getUptime();
+  var load = data.substring(data.length - 17);
+
+  callback(null, load);
 };
 
 RaspberryPiInfo.prototype.setUpServices = function () {
@@ -139,10 +137,9 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 	
 	this.raspberrypiService = new Service.TemperatureSensor(that.name);
 	var currentTemperatureCharacteristic = this.raspberrypiService.getCharacteristic(Characteristic.CurrentTemperature);
-	this.raspberrypiService.getCharacteristic(info)
-		.on('get', this.getUptime.bind(this));
-	this.raspberrypiService.getCharacteristic(load)
-		.on('get', this.getAvgLoad.bind(this));
+
+	this.raspberrypiService.getCharacteristic(info).on('get', this.getUptime.bind(this));
+	this.raspberrypiService.getCharacteristic(load).on('get', this.getAvgLoad.bind(this));
 	
 	function getCurrentTemperature() {
 		var data = fs.readFileSync(that.readFile, "utf-8");
@@ -151,19 +148,14 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 
 		return temperatureVal;
 	}
-	
-	readUptime();
-	
+
 	currentTemperatureCharacteristic.updateValue(getCurrentTemperature());
 	if(that.updateInterval) {
 		setInterval(() => {
 			currentTemperatureCharacteristic.updateValue(getCurrentTemperature());
 			
-			that.log("Raspberry Temperatur: " + temp);
+			that.log("Raspberry Temperature: " + temp);
 			this.fakeGatoHistoryService.addEntry({time: new Date().getTime() / 1000, temp: temp});
-			
-			readUptime();
-			
 		}, that.updateInterval);
 	}
 	
