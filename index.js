@@ -3,7 +3,6 @@ var inherits = require('util').inherits;
 const fs = require('fs');
 const packageFile = require("./package.json");
 var os = require("os");
-const modelFile = "/tmp/model.txt";
 const uptimeFile = "/tmp/uptime.txt";
 
 module.exports = function(homebridge) {
@@ -32,17 +31,13 @@ function readUptime() {
 };
 
 function getModel() {
-	const exec = require('child_process').exec;
-  const command = "cat /sys/firmware/devicetree/base/model > " + modelFile;
-	var script = exec(command,
-		(error, stdout, stderr) => {
-			if (error !== null) {
-				//this.log("exec error: " + ${error});
-			}
-		});
-	var data = fs.readFileSync(modelFile, "utf-8");
-	var Model = data.substring(0,data.length - 1);
-	return Model;		
+
+  const { execSync } = require('child_process');
+  // stderr is sent to stderr of parent process
+  // you can set options.stdio if you want it to go elsewhere
+  let stdout = execSync('cat /sys/firmware/devicetree/base/model');
+  const data = stdout.toString();
+	return data.substring(0, data.length - 1);
 };
 
 function isConfig(configFile, type, name) {
