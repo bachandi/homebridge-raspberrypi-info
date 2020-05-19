@@ -140,6 +140,10 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 	load.UUID = uuid2;
 	
 	this.raspberrypiService = new Service.TemperatureSensor(that.name);
+
+  this.raspberrypiService.addOptionalCharacteristic(info);
+  this.raspberrypiService.addOptionalCharacteristic(load);
+
 	var currentTemperatureCharacteristic = this.raspberrypiService.getCharacteristic(Characteristic.CurrentTemperature);
 
 	this.raspberrypiService.getCharacteristic(info).on('get', this.getUptime.bind(this));
