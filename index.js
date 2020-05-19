@@ -68,9 +68,9 @@ function RaspberryPiInfo(log, config) {
     this.log = log;
     this.name = config["name"];
     if(config["file"]) {
-        this.readFile = config["file"];
+        this.temperatureFile = config["file"];
     } else {
-        this.readFile = "/sys/class/thermal/thermal_zone0/temp";
+        this.temperatureFile = "/sys/class/thermal/thermal_zone0/temp";
     }
     if(config["updateInterval"] && config["updateInterval"] > 0) {
         this.updateInterval = config["updateInterval"];
@@ -146,7 +146,7 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 	this.raspberrypiService.getCharacteristic(load).on('get', this.getAvgLoad.bind(this));
 	
 	function getCurrentTemperature() {
-		var data = fs.readFileSync(that.readFile, "utf-8");
+		var data = fs.readFileSync(that.temperatureFile, "utf-8");
 		var temperatureVal = parseFloat(data) / 1000;
 		temp = temperatureVal;
 
