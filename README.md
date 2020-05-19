@@ -10,7 +10,8 @@ with more info
 "accessories": [{
     "accessory": "RaspberryPiInfo",
     "name": "RaspberryPi Info",
-    "updateInterval": 60000
+    "updateInterval": 60000,
+    "verboseLogging": false
 }]
 ```
 
