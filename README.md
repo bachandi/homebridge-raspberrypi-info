@@ -16,6 +16,11 @@ with more info
 }]
 ```
 
+Optional config options:
+"verboseLogging": false // true or false
+"historySize": 4032 // number of maximum history entries
+"language": en // set the display language if english is not desired
+
 ## Credits
 
 * simont77 - fakegato-history

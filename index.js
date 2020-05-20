@@ -66,6 +66,13 @@ function RaspberryPiInfo(log, config) {
     }
 
     this.log = log;
+    this.language = config.language;
+
+    if(this.language === undefined) {
+      this.language = 'en';
+    }
+    this.strings = require('./lang/' + this.language + '.json').strings;
+
     this.name = config["name"];
     if(config["file"]) {
         this.temperatureFile = config["file"];
@@ -160,7 +167,7 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 
   let uuid3 = UUIDGen.generate(that.name + '-RamUsage');
   ramUsage = function () {
-    Characteristic.call(this, 'RAM Usage', uuid3);
+    Characteristic.call(this, that.strings.RAM_USAGE, uuid3);
     this.setProps({
                   format: Characteristic.Formats.FLOAT,
                   unit: Characteristic.Units.PERCENTAGE,
