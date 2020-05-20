@@ -81,6 +81,10 @@ function RaspberryPiInfo(log, config) {
     if(config["verboseLogging"]) {
       this.verboseLogging = true;
     }
+    this.historySize = 4032;
+    if(config["historySize"] && config["historySize"] > 0) {
+      this.historySize = config["historySize"];
+    }
   
 	this.setUpServices();
 };
@@ -113,7 +117,7 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 		.setCharacteristic(Characteristic.SerialNumber, os.hostname()) // Note that if your Eve.app is controlling more than one accessory for each type, the serial number should be unique, otherwise Eve.app will merge the histories.
 		.setCharacteristic(Characteristic.FirmwareRevision, packageFile.version);
 	
-  this.fakeGatoHistoryService = new FakeGatoHistoryService("weather", this, { storage: 'fs', disableTimer: true });
+  this.fakeGatoHistoryService = new FakeGatoHistoryService("weather", this, { storage: 'fs', disableTimer: true, size: that.historySize });
 	
 	let uuid1 = UUIDGen.generate(that.name + '-Uptime');
 	info = function (displayName, subtype) {

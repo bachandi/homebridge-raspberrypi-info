@@ -11,7 +11,8 @@ with more info
     "accessory": "RaspberryPiInfo",
     "name": "RaspberryPi Info",
     "updateInterval": 60000,
-    "verboseLogging": false
+    "verboseLogging": false,
+    "historySize": 4032
 }]
 ```
 
