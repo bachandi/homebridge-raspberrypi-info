@@ -143,7 +143,7 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 	
 	let uuid1 = UUIDGen.generate(that.name + '-Uptime');
 	info = function (displayName, subtype) {
-		Characteristic.call(this, 'Uptime', uuid1);
+		Characteristic.call(this, that.strings.UPTIME, uuid1);
 		this.setProps({
 			format: Characteristic.Formats.STRING,
 			perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
@@ -155,7 +155,7 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 
 	let uuid2 = UUIDGen.generate(that.name + '-AvgLoad');
 	load = function () {
-		Characteristic.call(this, 'Average Load', uuid2);
+		Characteristic.call(this, that.strings.LOAD_AVERAGE, uuid2);
 		this.setProps({
 			format: Characteristic.Formats.STRING,
 			perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]

@@ -1,5 +1,7 @@
 {
     "strings":{
-        "RAM_USAGE": "RAM Nutzung"
+        "RAM_USAGE": "RAM Nutzung",
+        "UPTIME": "Betriebszeit",
+        "LOAD_AVERAGE": "Load Average"
     }
 }
