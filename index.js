@@ -18,7 +18,19 @@ module.exports = function(homebridge) {
     homebridge.registerAccessory('homebridge-raspberrypi-info', 'RaspberryPiInfo', RaspberryPiInfo);
 }
 
-function getUptime() {
+function getRamUsage() {
+
+  const { execSync } = require('child_process');
+  // stderr is sent to stderr of parent process
+  // you can set options.stdio if you want it to go elsewhere
+  let stdout = execSync('free | grep Mem');
+  const data = stdout.toString();
+  const line = data.substring(0, data.length - 1);
+  const entries = line.split(/\s+/);
+  return parseFloat(entries[2]) / parseFloat(entries[1]) * 100.0;
+};
+
+function getUptimeString() {
 
   const { execSync } = require('child_process');
   // stderr is sent to stderr of parent process
@@ -98,7 +110,7 @@ function RaspberryPiInfo(log, config) {
 
 RaspberryPiInfo.prototype.getUptime = function (callback) {
 
-  var data = getUptime();
+  var data = getUptimeString();
   var uptime = data.substring(12, data.indexOf(",", data.indexOf(",", 0)+1));
 
   callback(null, uptime);
@@ -106,7 +118,7 @@ RaspberryPiInfo.prototype.getUptime = function (callback) {
 
 RaspberryPiInfo.prototype.getAvgLoad = function (callback) {
 
-  var data = getUptime();
+  var data = getUptimeString();
   var load = data.substring(data.length - 17);
 
   callback(null, load);
@@ -114,23 +126,14 @@ RaspberryPiInfo.prototype.getAvgLoad = function (callback) {
 
 RaspberryPiInfo.prototype.getRamUsage = function (callback) {
 
-    const { execSync } = require('child_process');
-    // stderr is sent to stderr of parent process
-    // you can set options.stdio if you want it to go elsewhere
-    let stdout = execSync('free | grep Mem');
-    const data = stdout.toString();
-    const line = data.substring(0, data.length - 1);
-    const entries = line.split(/\s+/);
-    var ramUsageVal = 0.0;
-    ramUsageVal = parseFloat(entries[2]) / parseFloat(entries[1]) * 100.0;
-
+  const ramUsageVal = getRamUsage();
   callback(null, ramUsageVal);
 };
 
 RaspberryPiInfo.prototype.setUpServices = function () {
 
 	var that = this;
-	var temp;
+	var temperatureValue;
 	
 	this.infoService = new Service.AccessoryInformation();
 	this.infoService
@@ -194,22 +197,20 @@ RaspberryPiInfo.prototype.setUpServices = function () {
   this.raspberrypiService.getCharacteristic(ramUsage).on('get', this.getRamUsage.bind(this));
 	
 	function getCurrentTemperature() {
-		var data = fs.readFileSync(that.temperatureFile, "utf-8");
-		var temperatureVal = parseFloat(data) / 1000;
-		temp = temperatureVal;
-
-		return temperatureVal;
+		const data = fs.readFileSync(that.temperatureFile, "utf-8");
+		temperatureValue = parseFloat(data) / 1000;
+    return temperatureValue;
   }
 
 	currentTemperatureCharacteristic.updateValue(getCurrentTemperature());
-	if(that.updateInterval) {
+  if(that.updateInterval) {
 		setInterval(() => {
 			currentTemperatureCharacteristic.updateValue(getCurrentTemperature());
 
       if (that.verboseLogging) {
 			  that.log("Raspberry Temperature: " + temp);
       }
-			this.fakeGatoHistoryService.addEntry({time: new Date().getTime() / 1000, temp: temp});
+			this.fakeGatoHistoryService.addEntry({time: new Date().getTime() / 1000, temp: temperatureValue});
 		}, that.updateInterval);
 	}
 	
