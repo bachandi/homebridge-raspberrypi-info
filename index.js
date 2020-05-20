@@ -105,6 +105,21 @@ RaspberryPiInfo.prototype.getAvgLoad = function (callback) {
   callback(null, load);
 };
 
+RaspberryPiInfo.prototype.getRamUsage = function (callback) {
+
+    const { execSync } = require('child_process');
+    // stderr is sent to stderr of parent process
+    // you can set options.stdio if you want it to go elsewhere
+    let stdout = execSync('free | grep Mem');
+    const data = stdout.toString();
+    const line = data.substring(0, data.length - 1);
+    const entries = line.split(/\s+/);
+    var ramUsageVal = 0.0;
+    ramUsageVal = parseFloat(entries[2]) / parseFloat(entries[1]) * 100.0;
+
+  callback(null, ramUsageVal);
+};
+
 RaspberryPiInfo.prototype.setUpServices = function () {
 
 	var that = this;
@@ -142,16 +157,34 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 	};
 	inherits(load, Characteristic);
 	load.UUID = uuid2;
-	
+
+  let uuid3 = UUIDGen.generate(that.name + '-RamUsage');
+  ramUsage = function () {
+    Characteristic.call(this, 'RAM Usage', uuid3);
+    this.setProps({
+                  format: Characteristic.Formats.FLOAT,
+                  unit: Characteristic.Units.PERCENTAGE,
+                  maxValue: 100,
+                  minValue: 0,
+                  minStep: 0.1,
+                  perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
+                  });
+    this.value = this.getDefaultValue();
+  };
+  inherits(ramUsage, Characteristic);
+  ramUsage.UUID = uuid3;
+
 	this.raspberrypiService = new Service.TemperatureSensor(that.name);
 
   this.raspberrypiService.addOptionalCharacteristic(info);
   this.raspberrypiService.addOptionalCharacteristic(load);
+  this.raspberrypiService.addOptionalCharacteristic(ramUsage);
 
 	var currentTemperatureCharacteristic = this.raspberrypiService.getCharacteristic(Characteristic.CurrentTemperature);
 
 	this.raspberrypiService.getCharacteristic(info).on('get', this.getUptime.bind(this));
 	this.raspberrypiService.getCharacteristic(load).on('get', this.getAvgLoad.bind(this));
+  this.raspberrypiService.getCharacteristic(ramUsage).on('get', this.getRamUsage.bind(this));
 	
 	function getCurrentTemperature() {
 		var data = fs.readFileSync(that.temperatureFile, "utf-8");
@@ -159,7 +192,7 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 		temp = temperatureVal;
 
 		return temperatureVal;
-	}
+  }
 
 	currentTemperatureCharacteristic.updateValue(getCurrentTemperature());
 	if(that.updateInterval) {
