@@ -2,6 +2,7 @@
     "strings":{
         "RAM_USAGE": "RAM Nutzung",
         "UPTIME": "Betriebszeit",
-        "LOAD_AVERAGE": "Load Average"
+        "LOAD_AVERAGE": "Load Average",
+        "DECIMAL_SEPERATOR": ","
     }
 }

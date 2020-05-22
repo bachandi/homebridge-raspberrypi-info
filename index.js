@@ -3,8 +3,10 @@ var inherits = require('util').inherits;
 const fs = require('fs');
 const packageFile = require("./package.json");
 var os = require("os");
+var decimal_seperator;
 
 module.exports = function(homebridge) {
+
     if(!isConfig(homebridge.user.configPath(), "accessories", "RaspberryPiInfo")) {
         return;
     }
@@ -16,6 +18,28 @@ module.exports = function(homebridge) {
     FakeGatoHistoryService = require("fakegato-history")(homebridge);
 
     homebridge.registerAccessory('homebridge-raspberrypi-info', 'RaspberryPiInfo', RaspberryPiInfo);
+}
+
+String.prototype.toFormatedDurationString = function () {
+
+  var sec_num = parseInt(this, 10);
+  var days = Math.floor(sec_num / 86400);
+  sec_num = sec_num - (days * 86400);
+  var hours = Math.floor(sec_num / 3600);
+  sec_num = sec_num - (hours * 3600);
+  var minutes = Math.floor(sec_num / 60);
+  sec_num = sec_num - (minutes * 60);
+  var seconds = sec_num;
+  var outputString = '';
+  if (days > 0)
+    outputString += days + 'd';
+  if (hours > 0 || days > 0)
+    outputString += ' '+ hours + 'h';
+  if (minutes > 0 || hours > 0 || days > 0)
+    outputString += ' '+ minutes + 'm';
+  if (days === 0)
+    outputString += ' '+ seconds + 's';
+  return outputString;
 }
 
 function getRamUsage() {
@@ -32,12 +56,15 @@ function getRamUsage() {
 
 function getUptimeString() {
 
-  const { execSync } = require('child_process');
-  // stderr is sent to stderr of parent process
-  // you can set options.stdio if you want it to go elsewhere
-  let stdout = execSync('uptime');
-  const data = stdout.toString();
-  return data.substring(0, data.length - 1);
+  var data = fs.readFileSync("/proc/uptime", "utf-8");
+  return data.split(' ')[0].toFormatedDurationString();
+};
+
+function getLoadAvgString() {
+
+  var data = fs.readFileSync("/proc/loadavg", "utf-8");
+  var splits = data.split(' ');
+  return splits[0].split('.').join(decimal_seperator)+' '+splits[1].split('.').join(decimal_seperator)+' '+splits[2].split('.').join(decimal_seperator);
 };
 
 function getModel() {
@@ -78,12 +105,13 @@ function RaspberryPiInfo(log, config) {
     }
 
     this.log = log;
-    this.language = config.language;
 
-    if(this.language === undefined) {
-      this.language = 'en';
+    var language = 'en';
+    if(config.language != undefined) {
+      language = config.language;
     }
-    this.strings = require('./lang/' + this.language + '.json').strings;
+    this.strings = require('./lang/' + language + '.json').strings;
+    decimal_seperator = this.strings.DECIMAL_SEPERATOR;
 
     this.name = config["name"];
     if(config["file"]) {
@@ -114,18 +142,12 @@ function RaspberryPiInfo(log, config) {
 
 RaspberryPiInfo.prototype.getUptime = function (callback) {
 
-  var data = getUptimeString();
-  var uptime = data.substring(12, data.indexOf(",", data.indexOf(",", 0)+1));
-
-  callback(null, uptime);
+  callback(null, getUptimeString());
 };
 
 RaspberryPiInfo.prototype.getAvgLoad = function (callback) {
 
-  var data = getUptimeString();
-  var load = data.substring(data.length - 17);
-
-  callback(null, load);
+  callback(null, getLoadAvgString());
 };
 
 RaspberryPiInfo.prototype.getRamUsage = function (callback) {
