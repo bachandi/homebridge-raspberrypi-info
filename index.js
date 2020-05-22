@@ -51,7 +51,22 @@ function getRamUsage() {
   const data = stdout.toString();
   const line = data.substring(0, data.length - 1);
   const entries = line.split(/\s+/);
-  return parseFloat(entries[2]) / parseFloat(entries[1]) * 100.0;
+  return parseInt(entries[2]) / parseInt(entries[1]) * 100.0;
+};
+
+function getSwapUsage() {
+
+  const { execSync } = require('child_process');
+  // stderr is sent to stderr of parent process
+  // you can set options.stdio if you want it to go elsewhere
+  let stdout = execSync('free | grep Swap');
+  const data = stdout.toString();
+  const line = data.substring(0, data.length - 1);
+  const entries = line.split(/\s+/);
+  const total = parseInt(entries[1]);
+  if (total === 0)
+    return 0.0;
+  return parseInt(entries[2]) /total * 100.0;
 };
 
 function getThrottleStatusString() {
@@ -91,6 +106,18 @@ function getLoadAvgString() {
   var data = fs.readFileSync("/proc/loadavg", "utf-8");
   var splits = data.split(' ');
   return splits[0].split('.').join(decimal_seperator)+' '+splits[1].split('.').join(decimal_seperator)+' '+splits[2].split('.').join(decimal_seperator);
+};
+
+function getDiskUsage() {
+
+  const { execSync } = require('child_process');
+  // stderr is sent to stderr of parent process
+  // you can set options.stdio if you want it to go elsewhere
+  let stdout = execSync('df -P / | tail -n 1');
+  const data = stdout.toString();
+  const line = data.substring(0, data.length - 1);
+  const entries = line.split(/\s+/);
+  return 100.0 /(1.0+(parseInt(entries[3])/parseInt(entries[2])));
 };
 
 function getModel() {
@@ -183,13 +210,22 @@ RaspberryPiInfo.prototype.getAvgLoad = function (callback) {
 
 RaspberryPiInfo.prototype.getRamUsage = function (callback) {
 
-  const ramUsageVal = getRamUsage();
-  callback(null, ramUsageVal);
+  callback(null, getRamUsage());
+};
+
+RaspberryPiInfo.prototype.getSwapUsage = function (callback) {
+
+  callback(null, getSwapUsage());
 };
 
 RaspberryPiInfo.prototype.getThrottleStatus = function (callback) {
 
   callback(null, getThrottleStatusString());
+};
+
+RaspberryPiInfo.prototype.getDiskUsage = function (callback) {
+
+  callback(null, getDiskUsage());
 };
 
 RaspberryPiInfo.prototype.setUpServices = function () {
@@ -253,6 +289,42 @@ RaspberryPiInfo.prototype.setUpServices = function () {
   ramUsage.UUID = uuid3;
   this.raspberrypiService.addOptionalCharacteristic(ramUsage);
   this.raspberrypiService.getCharacteristic(ramUsage).on('get', this.getRamUsage.bind(this));
+
+  let uuid6 = UUIDGen.generate(that.name + '-SwapUsage');
+  swapUsage = function () {
+    Characteristic.call(this, that.strings.SWAP_USAGE, uuid6);
+    this.setProps({
+                  format: Characteristic.Formats.FLOAT,
+                  unit: Characteristic.Units.PERCENTAGE,
+                  maxValue: 100,
+                  minValue: 0,
+                  minStep: 0.1,
+                  perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
+                  });
+    this.value = this.getDefaultValue();
+  };
+  inherits(swapUsage, Characteristic);
+  swapUsage.UUID = uuid6;
+  this.raspberrypiService.addOptionalCharacteristic(swapUsage);
+  this.raspberrypiService.getCharacteristic(swapUsage).on('get', this.getSwapUsage.bind(this));
+
+  let uuid5 = UUIDGen.generate(that.name + '-DiskUsage');
+  diskUsage = function () {
+    Characteristic.call(this, that.strings.DISK_USAGE, uuid5);
+    this.setProps({
+                  format: Characteristic.Formats.FLOAT,
+                  unit: Characteristic.Units.PERCENTAGE,
+                  maxValue: 100,
+                  minValue: 0,
+                  minStep: 0.1,
+                  perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
+                  });
+    this.value = this.getDefaultValue();
+  };
+  inherits(diskUsage, Characteristic);
+  ramUsage.UUID = uuid5;
+  this.raspberrypiService.addOptionalCharacteristic(diskUsage);
+  this.raspberrypiService.getCharacteristic(diskUsage).on('get', this.getDiskUsage.bind(this));
 
   if (that.showThrottleStatus) {
     let uuid4 = UUIDGen.generate(that.name + '-ThrottleStatus');

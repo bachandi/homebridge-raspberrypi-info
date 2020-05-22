@@ -1,6 +1,8 @@
 {
     "strings":{
         "RAM_USAGE": "RAM Nutzung",
+        "SWAP_USAGE": "Swap Nutzung",
+        "DISK_USAGE": "Disk Nutzung",
         "UPTIME": "Betriebszeit",
         "LOAD_AVERAGE": "Load Average",
         "THROTTLE_STATUS": "Drossel status",
