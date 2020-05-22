@@ -20,6 +20,8 @@ Optional config options:
 "verboseLogging": false // true or false
 "historySize": 4032 // number of maximum history entries
 "language": en // set the display language if english is not desired
+"customCommand": "/path/script.sh" // command to be executed and ouput displayed
+"customCommandTitle": "My info" // Optional title for the custom command output. Only used if the command is specified
 
 If the hombridge user is in the video group also the throttling status will be displayed.
 

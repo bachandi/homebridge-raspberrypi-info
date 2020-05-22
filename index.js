@@ -120,6 +120,17 @@ function getDiskUsage() {
   return 100.0 /(1.0+(parseInt(entries[3])/parseInt(entries[2])));
 };
 
+function getCustomCommand(commandName) {
+
+  const { execSync } = require('child_process');
+  // stderr is sent to stderr of parent process
+  // you can set options.stdio if you want it to go elsewhere
+  let stdout = execSync(commandName);
+  const data = stdout.toString();
+  const line = data.substring(0, data.length - 1);
+  return line;
+};
+
 function getModel() {
 
   const { execSync } = require('child_process');
@@ -190,6 +201,13 @@ function RaspberryPiInfo(log, config) {
       this.useMeanTimer = true;
     }
 
+  this.customCommandName = '';
+  this.customCommandTitle = 'Custom';
+  if(config["customCommand"]) {
+    this.customCommandName = config["customCommand"];
+    this.customCommandTitle = config["customCommandTitle"];
+  }
+
   const { execSync } = require('child_process');
   let stdout = execSync('groups');
   const data = stdout.toString();
@@ -227,6 +245,12 @@ RaspberryPiInfo.prototype.getDiskUsage = function (callback) {
 
   callback(null, getDiskUsage());
 };
+
+RaspberryPiInfo.prototype.customCommand = function (callback) {
+
+  callback(null, getCustomCommand(this.customCommandName));
+};
+
 
 RaspberryPiInfo.prototype.setUpServices = function () {
 
@@ -340,6 +364,22 @@ RaspberryPiInfo.prototype.setUpServices = function () {
     throttleStatus.UUID = uuid4;
     this.raspberrypiService.addOptionalCharacteristic(throttleStatus);
     this.raspberrypiService.getCharacteristic(throttleStatus).on('get', this.getThrottleStatus.bind(this));
+  }
+
+  if (that.customCommandName.length != 0) {
+    let uuid7 = UUIDGen.generate(that.name + '-CustomCommand');
+    customCommand = function () {
+      Characteristic.call(this, that.customCommandTitle, uuid7);
+      this.setProps({
+                    format: Characteristic.Formats.STRING,
+                    perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
+                    });
+      this.value = this.getDefaultValue();
+    };
+    inherits(customCommand, Characteristic);
+    customCommand.UUID = uuid7;
+    this.raspberrypiService.addOptionalCharacteristic(customCommand);
+    this.raspberrypiService.getCharacteristic(customCommand).on('get', this.customCommand.bind(this));
   }
 
 	var currentTemperatureCharacteristic = this.raspberrypiService.getCharacteristic(Characteristic.CurrentTemperature);
