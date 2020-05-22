@@ -168,7 +168,7 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 		.setCharacteristic(Characteristic.SerialNumber, os.hostname()) // Note that if your Eve.app is controlling more than one accessory for each type, the serial number should be unique, otherwise Eve.app will merge the histories.
 		.setCharacteristic(Characteristic.FirmwareRevision, packageFile.version);
 	
-  this.fakeGatoHistoryService = new FakeGatoHistoryService("weather", this, { storage: 'fs', disableTimer: !that.useMeanTimer, size: that.historySize });
+  this.fakeGatoHistoryService = new FakeGatoHistoryService("weather", this, { storage: 'fs', disableTimer: !that.useMeanTimer, disableRepeatLastData:true, size: that.historySize });
 	
 	let uuid1 = UUIDGen.generate(that.name + '-Uptime');
 	info = function (displayName, subtype) {
