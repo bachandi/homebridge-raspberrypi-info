@@ -3,6 +3,7 @@
         "RAM_USAGE": "RAM Nutzung",
         "UPTIME": "Betriebszeit",
         "LOAD_AVERAGE": "Load Average",
+        "THROTTLE_STATUS": "Drossel status",
         "DECIMAL_SEPERATOR": ","
     }
 }

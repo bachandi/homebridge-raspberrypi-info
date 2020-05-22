@@ -54,6 +54,32 @@ function getRamUsage() {
   return parseFloat(entries[2]) / parseFloat(entries[1]) * 100.0;
 };
 
+function getThrottleStatusString() {
+
+  const { execSync } = require('child_process');
+  // stderr is sent to stderr of parent process
+  // you can set options.stdio if you want it to go elsewhere
+  let stdout = execSync('vcgencmd get_throttled');
+  const data = stdout.toString();
+  const line = data.substring(10, data.length - 1);
+  var testNum = parseInt(line);
+
+  // Doc vor vcgenmd: https://elinux.org/RPI_vcgencmd_usage
+  // Taken from: https://github.com/raspberrypi/documentation/blob/JamesH65-patch-vcgencmd-vcdbg-docs/raspbian/applications/vcgencmd.md
+
+  if(testNum === 0) return "No throttling";
+  outputString = '';
+  if((testNum & (1<<0)) > 0) {if(outputString) {outputString += '\n';} outputString += "Under-voltage detected";}
+  if((testNum & (1<<1)) > 0) {if(outputString) {outputString += '\n';} outputString += "Arm frequency capped";}
+  if((testNum & (1<<2)) > 0) {if(outputString) {outputString += '\n';} outputString += "Currently throttled";}
+  if((testNum & (1<<3)) > 0) {if(outputString) {outputString += '\n';} outputString += "Soft temperature limit active";}
+  if((testNum & (1<<16)) > 0) {if(outputString) {outputString += '\n';} outputString += "Under-voltage has occurred";}
+  if((testNum & (1<<17)) > 0) {if(outputString) {outputString += '\n';} outputString += "Arm frequency capped has occurred";}
+  if((testNum & (1<<18)) > 0) {if(outputString) {outputString += '\n';} outputString += "Throttling has occurred";}
+  if((testNum & (1<<19)) > 0) {if(outputString) {outputString += '\n';} outputString += "Soft temperature limit has occurred";}
+  return outputString
+};
+
 function getUptimeString() {
 
   var data = fs.readFileSync("/proc/uptime", "utf-8");
@@ -136,7 +162,12 @@ function RaspberryPiInfo(log, config) {
     if(config["useMeanTimer"]) {
       this.useMeanTimer = true;
     }
-  
+
+  const { execSync } = require('child_process');
+  let stdout = execSync('groups');
+  const data = stdout.toString();
+  this.showThrottleStatus = data.substring(0, data.length - 1).split(' ').includes('video');
+
 	this.setUpServices();
 };
 
@@ -156,6 +187,11 @@ RaspberryPiInfo.prototype.getRamUsage = function (callback) {
   callback(null, ramUsageVal);
 };
 
+RaspberryPiInfo.prototype.getThrottleStatus = function (callback) {
+
+  callback(null, getThrottleStatusString());
+};
+
 RaspberryPiInfo.prototype.setUpServices = function () {
 
 	var that = this;
@@ -169,7 +205,9 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 		.setCharacteristic(Characteristic.FirmwareRevision, packageFile.version);
 	
   this.fakeGatoHistoryService = new FakeGatoHistoryService("weather", this, { storage: 'fs', disableTimer: !that.useMeanTimer, disableRepeatLastData:true, size: that.historySize });
-	
+
+  this.raspberrypiService = new Service.TemperatureSensor(that.name);
+
 	let uuid1 = UUIDGen.generate(that.name + '-Uptime');
 	info = function (displayName, subtype) {
 		Characteristic.call(this, that.strings.UPTIME, uuid1);
@@ -181,6 +219,8 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 	};
 	inherits(info, Characteristic);
 	info.UUID = uuid1;
+  this.raspberrypiService.addOptionalCharacteristic(info);
+  this.raspberrypiService.getCharacteristic(info).on('get', this.getUptime.bind(this));
 
 	let uuid2 = UUIDGen.generate(that.name + '-AvgLoad');
 	load = function () {
@@ -193,6 +233,8 @@ RaspberryPiInfo.prototype.setUpServices = function () {
 	};
 	inherits(load, Characteristic);
 	load.UUID = uuid2;
+  this.raspberrypiService.addOptionalCharacteristic(load);
+  this.raspberrypiService.getCharacteristic(load).on('get', this.getAvgLoad.bind(this));
 
   let uuid3 = UUIDGen.generate(that.name + '-RamUsage');
   ramUsage = function () {
@@ -209,19 +251,27 @@ RaspberryPiInfo.prototype.setUpServices = function () {
   };
   inherits(ramUsage, Characteristic);
   ramUsage.UUID = uuid3;
-
-	this.raspberrypiService = new Service.TemperatureSensor(that.name);
-
-  this.raspberrypiService.addOptionalCharacteristic(info);
-  this.raspberrypiService.addOptionalCharacteristic(load);
   this.raspberrypiService.addOptionalCharacteristic(ramUsage);
+  this.raspberrypiService.getCharacteristic(ramUsage).on('get', this.getRamUsage.bind(this));
+
+  if (that.showThrottleStatus) {
+    let uuid4 = UUIDGen.generate(that.name + '-ThrottleStatus');
+    throttleStatus = function () {
+      Characteristic.call(this, that.strings.THROTTLE_STATUS, uuid4);
+      this.setProps({
+                    format: Characteristic.Formats.STRING,
+                    perms: [Characteristic.Perms.READ, Characteristic.Perms.NOTIFY]
+                    });
+      this.value = this.getDefaultValue();
+    };
+    inherits(throttleStatus, Characteristic);
+    throttleStatus.UUID = uuid4;
+    this.raspberrypiService.addOptionalCharacteristic(throttleStatus);
+    this.raspberrypiService.getCharacteristic(throttleStatus).on('get', this.getThrottleStatus.bind(this));
+  }
 
 	var currentTemperatureCharacteristic = this.raspberrypiService.getCharacteristic(Characteristic.CurrentTemperature);
 
-	this.raspberrypiService.getCharacteristic(info).on('get', this.getUptime.bind(this));
-	this.raspberrypiService.getCharacteristic(load).on('get', this.getAvgLoad.bind(this));
-  this.raspberrypiService.getCharacteristic(ramUsage).on('get', this.getRamUsage.bind(this));
-	
 	function getCurrentTemperature() {
 		const data = fs.readFileSync(that.temperatureFile, "utf-8");
 		temperatureValue = parseFloat(data) / 1000;

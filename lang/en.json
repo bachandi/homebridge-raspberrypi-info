@@ -3,6 +3,7 @@
         "RAM_USAGE": "RAM Usage",
         "UPTIME": "Uptime",
         "LOAD_AVERAGE": "Load Average",
+        "THROTTLE_STATUS": "Throttle status",
         "DECIMAL_SEPERATOR": "."
     }
 }

@@ -21,6 +21,8 @@ Optional config options:
 "historySize": 4032 // number of maximum history entries
 "language": en // set the display language if english is not desired
 
+If the hombridge user is in the video group also the throttling status will be displayed.
+
 ## Credits
 
 * simont77 - fakegato-history
