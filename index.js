@@ -3,7 +3,6 @@ var inherits = require('util').inherits;
 const fs = require('fs');
 const packageFile = require("./package.json");
 var os = require("os");
-var decimal_seperator;
 
 module.exports = function(homebridge) {
 
@@ -101,11 +100,11 @@ function getUptimeString() {
   return data.split(' ')[0].toFormatedDurationString();
 };
 
-function getLoadAvgString() {
+function getLoadAvgString(decimalSeperator) {
 
   var data = fs.readFileSync("/proc/loadavg", "utf-8");
   var splits = data.split(' ');
-  return splits[0].split('.').join(decimal_seperator)+' '+splits[1].split('.').join(decimal_seperator)+' '+splits[2].split('.').join(decimal_seperator);
+  return splits[0].split('.').join(decimalSeperator)+' '+splits[1].split('.').join(decimalSeperator)+' '+splits[2].split('.').join(decimalSeperator);
 };
 
 function getDiskUsage() {
@@ -175,7 +174,6 @@ function RaspberryPiInfo(log, config) {
       language = config.language;
     }
     this.strings = require('./lang/' + language + '.json').strings;
-    decimal_seperator = this.strings.DECIMAL_SEPERATOR;
 
     this.name = config["name"];
     if(config["file"]) {
@@ -223,7 +221,7 @@ RaspberryPiInfo.prototype.getUptime = function (callback) {
 
 RaspberryPiInfo.prototype.getAvgLoad = function (callback) {
 
-  callback(null, getLoadAvgString());
+  callback(null, getLoadAvgString(this.strings.DECIMAL_SEPERATOR));
 };
 
 RaspberryPiInfo.prototype.getRamUsage = function (callback) {
