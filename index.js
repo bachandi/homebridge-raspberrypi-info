@@ -50,7 +50,7 @@ function getRamUsage() {
   const data = stdout.toString();
   const line = data.substring(0, data.length - 1);
   const entries = line.split(/\s+/);
-  return parseInt(entries[2]) / parseInt(entries[1]) * 100.0;
+  return (parseInt(entries[2]) + parseInt(entries[4])) / parseInt(entries[1]) * 100.0;
 };
 
 function getSwapUsage() {
