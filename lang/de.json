@@ -5,7 +5,7 @@
         "DISK_USAGE": "Disk Nutzung",
         "UPTIME": "Betriebszeit",
         "LOAD_AVERAGE": "Load Average",
-        "THROTTLE_STATUS": "Drossel status",
+        "THROTTLE_STATUS": "Drossel Status",
         "DECIMAL_SEPERATOR": ","
     }
 }
